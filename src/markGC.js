@@ -34,16 +34,21 @@ function vsp(graph, vertexes, n, callback) {
       return { [v]: bellmanFord(graph, v).distance };
     })
     .map(x => _.mapValues(x, v => _.pickBy(v, isFinite)))
-    .reduce(_.assign);
+    .reduce(_.assign, {});
 
 
   //排除最短路径上的分支
-  const visp = x => _.pickBy(x, (v, k) =>
-    _(x).pickBy(y => y > v).keys().every(a => sp[k][a] !== undefined));
+  const visp = (x, s) => {
+    const maxDistance = _(x).values().max();
+    const ends = _(x).pickBy(v => v === maxDistance).keys().value();
+    return _(x).pickBy((v, k) => sp[s][k] !== undefined
+      && ends.find(e => sp[k][e] !== undefined)).value();
+  };
 
-  return _(sp).values()
-    .filter(x => _(x).values().max() >= n)
-    .map(visp)
+  return _(sp)
+    .pickBy(x => _(x).values().max() >= n)
+    .mapValues(visp)
+    .values()
     .map(_.keys)
     .reduce(union, []);
 }
